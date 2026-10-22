@@ -1,0 +1,6 @@
+{
+  "name": "Varad Medical - Pharmacy Billing & Inventory",
+  "description": "Medical Store & Pharmacy Management Application for Varad Medical, Gargoti, Kolhapur. Features real-time stock deduction, batch expiry alerts, patient-doctor-hospital billing, and formal GST receipts.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

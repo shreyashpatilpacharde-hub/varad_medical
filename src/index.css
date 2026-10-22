@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+@layer base {
+  * {
+    border-color: var(--color-slate-200, #e2e8f0);
+  }
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    color: #0f172a;
+    background-color: #f8fafc;
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* Custom styling for receipt print */
+@media print {
+  @page {
+    margin: 10mm;
+    size: auto;
+  }
+  body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+  }
+  .no-print,
+  nav,
+  header,
+  aside,
+  button:not(.print-include) {
+    display: none !important;
+  }
+  .print-receipt-modal {
+    position: fixed !important;
+    inset: 0 !important;
+    background: #ffffff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    z-index: 999999 !important;
+    box-shadow: none !important;
+    border: none !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+  .print-clean-card {
+    border: 1px solid #94a3b8 !important;
+    box-shadow: none !important;
+    padding: 12px !important;
+    background: #ffffff !important;
+  }
+}
+
