@@ -52,10 +52,18 @@ async function startServer() {
       },
       appType: 'spa',
     });
+    // Redirect root to base URL for seamless dev preview
+    app.get('/', (_req, res) => {
+      res.redirect('/varad_medical/');
+    });
+    app.get('/varad_medical', (_req, res) => {
+      res.redirect('/varad_medical/');
+    });
     app.use(vite.middlewares);
     console.log('[Dev] Vite middleware attached');
   } else {
     const distPath = path.resolve(__dirname, 'dist');
+    app.use('/varad_medical', express.static(distPath));
     app.use(express.static(distPath));
     app.get('*', (_req, res) => {
       res.sendFile(path.resolve(distPath, 'index.html'));
