@@ -1,6 +1,32 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <script>
+if (!localStorage.getItem('medical_inventory')) {
+  localStorage.setItem('medical_inventory', JSON.stringify([]));
+}
+const originalFetch = window.fetch;
+window.fetch = async function(...args) {
+  const url = args[0];
+  const options = args[1] || {};
+  if (typeof url === 'string' && url.includes('/api/inventory')) {
+    if (options.method === 'POST') {
+      const newMed = JSON.parse(options.body);
+      const currentInv = JSON.parse(localStorage.getItem('medical_inventory'));
+      newMed.id = Date.now().toString();
+      currentInv.push(newMed);
+      localStorage.setItem('medical_inventory', JSON.stringify(currentInv));
+      return new Response(JSON.stringify({ success: true, data: newMed }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+    const currentInv = localStorage.getItem('medical_inventory');
+    return new Response(currentInv, { status: 200, headers: { 'Content-Type': 'application/json' } });
+  }
+  if (typeof url === 'string' && url.includes('/api/')) {
+    return new Response(JSON.stringify([]), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  }
+  return originalFetch.apply(this, args);
+};
+</script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Varad Medical - Pharmacy Billing &amp; Inventory</title>
