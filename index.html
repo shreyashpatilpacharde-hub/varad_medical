@@ -2,6 +2,56 @@
 <html lang="en">
   <head>
     <script>
+// बॅकएंड एपीआय सर्व्हर पूर्णपणे ब्लॉक करून ब्राउझर मेमरी सुरू करणे
+ if (!localStorage.getItem('varad_inventory')) {
+  localStorage.setItem('varad_inventory', JSON.stringify([]));
+ }
+ if (!localStorage.getItem('varad_receipts')) {
+  localStorage.setItem('varad_receipts', JSON.stringify([]));
+ }
+
+  const originalFetch = window.fetch;
+  window.fetch = async function(url, options = {}) {
+   const urlStr = typeof url === 'string' ? url : (url.url || '');
+  
+  // १. औषधांची लिस्ट आणि नवीन औषध ॲड करणे
+  if (urlStr.includes('/api/inventory')) {
+    if (options.method === 'POST') {
+      const newMed = JSON.parse(options.body || '{}');
+      const currentInv = JSON.parse(localStorage.getItem('varad_inventory') || '[]');
+      newMed.id = Date.now().toString();
+      currentInv.push(newMed);
+      localStorage.setItem('varad_inventory', JSON.stringify(currentInv));
+      return new Response(JSON.stringify({ success: true, data: newMed }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+    const currentInv = localStorage.getItem('varad_inventory') || '[]';
+    return new Response(currentInv, { status: 200, headers: { 'Content-Type': 'application/json' } });
+  }
+
+  // २. बिलांची हिस्ट्री आणि नवीन बिल सेव्ह करणे
+   if (urlStr.includes('/api/billing/receipts') || urlStr.includes('/api/transactions')) {
+    if (options.method === 'POST') {
+      const newReceipt = JSON.parse(options.body || '{}');
+      const currentReceipts = JSON.parse(localStorage.getItem('varad_receipts') || '[]');
+      newReceipt.id = `REC-${Date.now()}`;
+      newReceipt.date = new Date().toISOString();
+      currentReceipts.unshift(newReceipt);
+      localStorage.setItem('varad_receipts', JSON.stringify(currentReceipts));
+      return new Response(JSON.stringify({ success: true, data: newReceipt }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+    const currentReceipts = localStorage.getItem('varad_receipts') || '[]';
+     return new Response(currentReceipts, { status: 200, headers: { 'Content-Type': 'application/json' } });
+   }
+
+   // ३. बाकीचे इतर ४०४ एरर देणारे कॉल्स शांत करणे
+   if (urlStr.includes('/api/')) {
+     return new Response(JSON.stringify([]), { status: 200, headers: { 'Content-Type': 'application/json' } });
+     }
+
+     return originalFetch.apply(this, arguments);
+   };
+   </script>
+    <script>
  if (!localStorage.getItem('medical_inventory')) {
    localStorage.setItem('medical_inventory', JSON.stringify([]));
  }
