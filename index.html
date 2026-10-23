@@ -2,7 +2,6 @@
 <html lang="en">
   <head>
     <script>
-      // १. ब्राउझर मेमरी (localStorage) सुरुवातीला सेट करणे
       if (!localStorage.getItem('varad_inventory')) {
         localStorage.setItem('varad_inventory', JSON.stringify([]));
       }
@@ -10,12 +9,10 @@
         localStorage.setItem('varad_receipts', JSON.stringify([]));
       }
 
-      // २. बॅकएंड एपीआय सर्व्हरची सर्व कामे लोकल मेमरीमध्ये वळवणे (Mock Fetch API)
       const originalFetch = window.fetch;
       window.fetch = async function(url, options = {}) {
         const urlStr = typeof url === 'string' ? url : (url.url || '');
-        
-        // अ) औषधांची लिस्ट आणि नवीन औषध ॲड करणे (/api/inventory)
+
         if (urlStr.includes('/api/inventory')) {
           if (options.method === 'POST') {
             const newMed = JSON.parse(options.body || '{}');
@@ -23,8 +20,7 @@
             newMed.id = Date.now().toString();
             currentInv.push(newMed);
             localStorage.setItem('varad_inventory', JSON.stringify(currentInv));
-            
-            // डेटा दोन्ही स्वरूपात रिटर्न करणे जेणेकरून तुमचे दोन्ही कोड्स मॅच होतील
+
             const responseData = { success: true, data: newMed, ...newMed };
             return new Response(JSON.stringify(responseData), { status: 200, headers: { 'Content-Type': 'application/json' } });
           }
@@ -32,7 +28,6 @@
           return new Response(currentInv, { status: 200, headers: { 'Content-Type': 'application/json' } });
         }
 
-        // ब) बिलांची हिस्ट्री आणि नवीन बिल सेव्ह करणे (/api/billing/receipts)
         if (urlStr.includes('/api/billing/receipts') || urlStr.includes('/api/transactions')) {
           if (options.method === 'POST') {
             const newReceipt = JSON.parse(options.body || '{}');
@@ -41,7 +36,7 @@
             newReceipt.date = new Date().toISOString();
             currentReceipts.unshift(newReceipt);
             localStorage.setItem('varad_receipts', JSON.stringify(currentReceipts));
-            
+
             const responseData = { success: true, data: newReceipt, ...newReceipt };
             return new Response(JSON.stringify(responseData), { status: 200, headers: { 'Content-Type': 'application/json' } });
           }
@@ -49,9 +44,7 @@
           return new Response(currentReceipts, { status: 200, headers: { 'Content-Type': 'application/json' } });
         }
 
-        // क) बाकीचे इतर ४०४ एरर देणारे डॅशबोर्ड कॉल्स शांत करणे
         if (urlStr.includes('/api/')) {
-          // जर डॅशबोर्डला डायरेक्ट डेटा लागत असेल तर रिकामा डेटा किंवा ऑब्जेक्ट पाठवणे
           const defaultData = urlStr.includes('stats') ? { totalMedicines: 0, lowStock: 0, totalSales: 0 } : [];
           return new Response(JSON.stringify(defaultData), { status: 200, headers: { 'Content-Type': 'application/json' } });
         }
@@ -62,14 +55,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Varad Medical - Pharmacy Billing &amp; Inventory</title>
-    <meta name="description" content="Medical Store &amp; Pharmacy Management Application for Varad Medical, Gargoti, Kolhapur. Features real-time stock deduction, batch expiry alerts, patient-doctor-hospital billing, and formal GST receipts." />
-    <meta property="og:title" content="Varad Medical - Pharmacy Billing &amp; Inventory" />
-    <meta property="og:description" content="Medical Store &amp; Pharmacy Management Application for Varad Medical, Gargoti, Kolhapur. Features real-time stock deduction, batch expiry alerts, patient-doctor-hospital billing, and formal GST receipts." />
-    <meta property="og:type" content="website" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://googleapis.com">
+    <link rel="preconnect" href="https://gstatic.com" crossorigin>
+    <link href="https://googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   </head>
   <body>
     <div id="root"></div>
