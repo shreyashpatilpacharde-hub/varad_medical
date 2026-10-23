@@ -3,18 +3,18 @@ import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 
+// गिटहब पेजेससाठी अतिशय साधा बॅकएंड मॉक
 if (!localStorage.getItem('medical_inventory')) {
   localStorage.setItem('medical_inventory', JSON.stringify([]));
 }
 
 const originalFetch = window.fetch;
-window.fetch = async function (input: RequestInfo | URL, init?: RequestInit) {
-  const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
-  const options = init || {};
+window.fetch = async function (input: any, init?: any) {
+  const url = typeof input === 'string' ? input : input.url || '';
 
   if (url.includes('/api/inventory') || url.includes('/api/medicines')) {
-    if (options.method === 'POST' && options.body) {
-      const newMed = JSON.parse(options.body as string);
+    if (init && init.method === 'POST' && init.body) {
+      const newMed = JSON.parse(init.body);
       const currentInv = JSON.parse(localStorage.getItem('medical_inventory') || '[]');
       newMed.id = Date.now().toString();
       currentInv.push(newMed);
