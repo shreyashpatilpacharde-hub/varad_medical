@@ -2,79 +2,61 @@
 <html lang="en">
   <head>
     <script>
-// बॅकएंड एपीआय सर्व्हर पूर्णपणे ब्लॉक करून ब्राउझर मेमरी सुरू करणे
- if (!localStorage.getItem('varad_inventory')) {
-  localStorage.setItem('varad_inventory', JSON.stringify([]));
- }
- if (!localStorage.getItem('varad_receipts')) {
-  localStorage.setItem('varad_receipts', JSON.stringify([]));
- }
+      // १. ब्राउझर मेमरी (localStorage) सुरुवातीला सेट करणे
+      if (!localStorage.getItem('varad_inventory')) {
+        localStorage.setItem('varad_inventory', JSON.stringify([]));
+      }
+      if (!localStorage.getItem('varad_receipts')) {
+        localStorage.setItem('varad_receipts', JSON.stringify([]));
+      }
 
-  const originalFetch = window.fetch;
-  window.fetch = async function(url, options = {}) {
-   const urlStr = typeof url === 'string' ? url : (url.url || '');
-  
-  // १. औषधांची लिस्ट आणि नवीन औषध ॲड करणे
-  if (urlStr.includes('/api/inventory')) {
-    if (options.method === 'POST') {
-      const newMed = JSON.parse(options.body || '{}');
-      const currentInv = JSON.parse(localStorage.getItem('varad_inventory') || '[]');
-      newMed.id = Date.now().toString();
-      currentInv.push(newMed);
-      localStorage.setItem('varad_inventory', JSON.stringify(currentInv));
-      return new Response(JSON.stringify({ success: true, data: newMed }), { status: 200, headers: { 'Content-Type': 'application/json' } });
-    }
-    const currentInv = localStorage.getItem('varad_inventory') || '[]';
-    return new Response(currentInv, { status: 200, headers: { 'Content-Type': 'application/json' } });
-  }
+      // २. बॅकएंड एपीआय सर्व्हरची सर्व कामे लोकल मेमरीमध्ये वळवणे (Mock Fetch API)
+      const originalFetch = window.fetch;
+      window.fetch = async function(url, options = {}) {
+        const urlStr = typeof url === 'string' ? url : (url.url || '');
+        
+        // अ) औषधांची लिस्ट आणि नवीन औषध ॲड करणे (/api/inventory)
+        if (urlStr.includes('/api/inventory')) {
+          if (options.method === 'POST') {
+            const newMed = JSON.parse(options.body || '{}');
+            const currentInv = JSON.parse(localStorage.getItem('varad_inventory') || '[]');
+            newMed.id = Date.now().toString();
+            currentInv.push(newMed);
+            localStorage.setItem('varad_inventory', JSON.stringify(currentInv));
+            
+            // डेटा दोन्ही स्वरूपात रिटर्न करणे जेणेकरून तुमचे दोन्ही कोड्स मॅच होतील
+            const responseData = { success: true, data: newMed, ...newMed };
+            return new Response(JSON.stringify(responseData), { status: 200, headers: { 'Content-Type': 'application/json' } });
+          }
+          const currentInv = localStorage.getItem('varad_inventory') || '[]';
+          return new Response(currentInv, { status: 200, headers: { 'Content-Type': 'application/json' } });
+        }
 
-  // २. बिलांची हिस्ट्री आणि नवीन बिल सेव्ह करणे
-   if (urlStr.includes('/api/billing/receipts') || urlStr.includes('/api/transactions')) {
-    if (options.method === 'POST') {
-      const newReceipt = JSON.parse(options.body || '{}');
-      const currentReceipts = JSON.parse(localStorage.getItem('varad_receipts') || '[]');
-      newReceipt.id = `REC-${Date.now()}`;
-      newReceipt.date = new Date().toISOString();
-      currentReceipts.unshift(newReceipt);
-      localStorage.setItem('varad_receipts', JSON.stringify(currentReceipts));
-      return new Response(JSON.stringify({ success: true, data: newReceipt }), { status: 200, headers: { 'Content-Type': 'application/json' } });
-    }
-    const currentReceipts = localStorage.getItem('varad_receipts') || '[]';
-     return new Response(currentReceipts, { status: 200, headers: { 'Content-Type': 'application/json' } });
-   }
+        // ब) बिलांची हिस्ट्री आणि नवीन बिल सेव्ह करणे (/api/billing/receipts)
+        if (urlStr.includes('/api/billing/receipts') || urlStr.includes('/api/transactions')) {
+          if (options.method === 'POST') {
+            const newReceipt = JSON.parse(options.body || '{}');
+            const currentReceipts = JSON.parse(localStorage.getItem('varad_receipts') || '[]');
+            newReceipt.id = `REC-${Date.now()}`;
+            newReceipt.date = new Date().toISOString();
+            currentReceipts.unshift(newReceipt);
+            localStorage.setItem('varad_receipts', JSON.stringify(currentReceipts));
+            
+            const responseData = { success: true, data: newReceipt, ...newReceipt };
+            return new Response(JSON.stringify(responseData), { status: 200, headers: { 'Content-Type': 'application/json' } });
+          }
+          const currentReceipts = localStorage.getItem('varad_receipts') || '[]';
+          return new Response(currentReceipts, { status: 200, headers: { 'Content-Type': 'application/json' } });
+        }
 
-   // ३. बाकीचे इतर ४०४ एरर देणारे कॉल्स शांत करणे
-   if (urlStr.includes('/api/')) {
-     return new Response(JSON.stringify([]), { status: 200, headers: { 'Content-Type': 'application/json' } });
-     }
+        // क) बाकीचे इतर ४०४ एरर देणारे डॅशबोर्ड कॉल्स शांत करणे
+        if (urlStr.includes('/api/')) {
+          // जर डॅशबोर्डला डायरेक्ट डेटा लागत असेल तर रिकामा डेटा किंवा ऑब्जेक्ट पाठवणे
+          const defaultData = urlStr.includes('stats') ? { totalMedicines: 0, lowStock: 0, totalSales: 0 } : [];
+          return new Response(JSON.stringify(defaultData), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        }
 
-     return originalFetch.apply(this, arguments);
-   };
-   </script>
-    <script>
- if (!localStorage.getItem('medical_inventory')) {
-   localStorage.setItem('medical_inventory', JSON.stringify([]));
- }
- const originalFetch = window.fetch;
-  window.fetch = async function(...args) {
-   const url = args[0];
-   const options = args[1] || {};
-   if (typeof url === 'string' && url.includes('/api/inventory')) {
-    if (options.method === 'POST') {
-      const newMed = JSON.parse(options.body);
-      const currentInv = JSON.parse(localStorage.getItem('medical_inventory'));
-      newMed.id = Date.now().toString();
-      currentInv.push(newMed);
-      localStorage.setItem('medical_inventory', JSON.stringify(currentInv));
-      return new Response(JSON.stringify({ success: true, data: newMed }), { status: 200, headers: { 'Content-Type': 'application/json' } });
-     }
-     const currentInv = localStorage.getItem('medical_inventory');
-     return new Response(currentInv, { status: 200, headers: { 'Content-Type': 'application/json' } });
-   }
-    if (typeof url === 'string' && url.includes('/api/')) {
-      return new Response(JSON.stringify([]), { status: 200, headers: { 'Content-Type': 'application/json' } });
-     }
-     return originalFetch.apply(this, args);
+        return originalFetch.apply(this, arguments);
       };
     </script>
     <meta charset="UTF-8" />
@@ -94,4 +76,3 @@
     <script type="module" src="src/main.tsx"></script>
   </body>
 </html>
-
