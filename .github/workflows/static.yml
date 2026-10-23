@@ -5,7 +5,7 @@ on:
     branches: ["main"]
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -22,20 +22,110 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
+
+      - name: Auto-Fix Files and Overwrite Errors
+        run: |
+          
+          mkdir -p src
+          cat << 'EOF' > src/main.tsx
+          import React from 'react'
+          import ReactDOM from 'react-dom/client'
+          import App from './App.tsx'
+          import './index.css'
+
+          ReactDOM.createRoot(document.getElementById('root')!).render(
+            <React.StrictMode>
+              <App />
+            </React.StrictMode>,
+          )
+          EOF
+
+          
+          cat << 'EOF' > index.html
+          <!doctype html>
+          <html lang="en">
+            <head>
+              <script>
+                if (!localStorage.getItem('varad_inventory')) {
+                  localStorage.setItem('varad_inventory', JSON.stringify([]));
+                }
+                if (!localStorage.getItem('varad_receipts')) {
+                  localStorage.setItem('varad_receipts', JSON.stringify([]));
+                }
+
+                const originalFetch = window.fetch;
+                window.fetch = async function(url, options = {}) {
+                  const urlStr = typeof url === 'string' ? url : (url.url || '');
+                  
+                  if (urlStr.includes('/api/inventory')) {
+                    if (options.method === 'POST') {
+                      const newMed = JSON.parse(options.body || '{}');
+                      const currentInv = JSON.parse(localStorage.getItem('varad_inventory') || '[]');
+                      newMed.id = Date.now().toString();
+                      currentInv.push(newMed);
+                      localStorage.setItem('varad_inventory', JSON.stringify(currentInv));
+                      const responseData = { success: true, data: newMed, ...newMed };
+                      return new Response(JSON.stringify(responseData), { status: 200, headers: { 'Content-Type': 'application/json' } });
+                    }
+                    const currentInv = localStorage.getItem('varad_inventory') || '[]';
+                    return new Response(currentInv, { status: 200, headers: { 'Content-Type': 'application/json' } });
+                  }
+
+                  if (urlStr.includes('/api/billing/receipts') || urlStr.includes('/api/transactions')) {
+                    if (options.method === 'POST') {
+                      const newReceipt = JSON.parse(options.body || '{}');
+                      const currentReceipts = JSON.parse(localStorage.getItem('varad_receipts') || '[]');
+                      newReceipt.id = `REC-${Date.now()}`;
+                      newReceipt.date = new Date().toISOString();
+                      currentReceipts.unshift(newReceipt);
+                      localStorage.setItem('varad_receipts', JSON.stringify(currentReceipts));
+                      const responseData = { success: true, data: newReceipt, ...newReceipt };
+                      return new Response(JSON.stringify(responseData), { status: 200, headers: { 'Content-Type': 'application/json' } });
+                    }
+                    const currentReceipts = localStorage.getItem('varad_receipts') || '[]';
+                    return new Response(currentReceipts, { status: 200, headers: { 'Content-Type': 'application/json' } });
+                  }
+
+                  if (urlStr.includes('/api/')) {
+                    const defaultData = urlStr.includes('stats') ? { totalMedicines: 0, lowStock: 0, totalSales: 0 } : [];
+                    return new Response(JSON.stringify(defaultData), { status: 200, headers: { 'Content-Type': 'application/json' } });
+                  }
+
+                  return originalFetch.apply(this, arguments);
+                };
+              </script>
+              <meta charset="UTF-8" />
+              <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+              <title>Varad Medical - Pharmacy Billing &amp; Inventory</title>
+              <link rel="preconnect" href="https://googleapis.com">
+              <link rel="preconnect" href="https://gstatic.com" crossorigin>
+              <link href="https://googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+            </head>
+            <body>
+              <div id="root"></div>
+              <script type="module" src="src/main.tsx"></script>
+            </body>
+          </html>
+          EOF
+
       - name: Install and Build Website
         run: |
           npm install --legacy-peer-deps
           npm run build
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: './dist'
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
